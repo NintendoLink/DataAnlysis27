@@ -1,5 +1,4 @@
 # -*- coding: UTF-8 -*-
-
 from bs4 import BeautifulSoup
 from Config import CrawConfig as config
 import re,requests,time,os,json,sys
@@ -33,7 +32,8 @@ def handleUserPage(url):
     # response=getResponse(url,headers=headers)
     # print response
 
-    # time.sleep(config.SLEEP_TIME)
+    if config.SLEEP_SWITCH == True:
+        time.sleep(config.SLEEP_TIME)
     response=requests.get(url,headers=headers)
     soup = BeautifulSoup(response.text, "html.parser", from_encoding='utf-8')
     dataSoup=soup.find('div',class_='txt')
@@ -66,26 +66,38 @@ def handleUserPage(url):
 
     # 用户的评论信息
     userContentUrl = userHome + '/reviews'
-    print userContentUrl
     handUserContent(userContentUrl,userContents)
     # 用户信息持久化
     userInfo_json=json.dumps(userInfo,ensure_ascii=False).encode('utf-8')
-    outFolder=config.USERINFO_FOLDER
+
+    # 使用相对路径
+    # outFolder=config.USERINFO_FOLDER
+
+    # 使用绝对路径
+    outFolder=config.USERINFO_ABS_FOLDER
     if os.path.exists(outFolder) == False:
         os.makedirs(outFolder)
     outFileName=url.split('/')[4]
-    filePath=os.path.join(outFolder,outFileName)
 
+    # 相对路径的文件夹与文件连接方式
+    # filePath=os.path.join(outFolder,outFileName)
+
+    # 绝对路径的文件连接方式
+    filePath=outFolder+'\\'+outFileName
     with open(filePath,'a') as outFile:
         # print '正在写入'+userName+'的数据'
         outFile.write(userInfo_json+'\n')
         for content in userContents:
             outFile.write(json.dumps(content,ensure_ascii=False).encode('utf-8')+'\n')
-
+            
+    # 处理用户的粉丝信息
+    userFollowsUrl=userHome+'/follows'
+    handleFollowsPage(userFollowsUrl)
 def handleFollowsPage(url):
     userHome = url.split('/')[0] + '//' + url.split('/')[2] + '/' + url.split('/')[3] + '/' + url.split('/')[4]
     # 处理用户关注信息
-    # time.sleep(config.SLEEP_TIME)
+    if config.SLEEP_SWITCH == True:
+        time.sleep(config.SLEEP_TIME)
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.text, "html.parser", from_encoding='utf-8')
     # print soup.prettify()
@@ -96,16 +108,17 @@ def handleFollowsPage(url):
         for follow in followLink:
             # 用户是否爬取过
             if follow['href'].split('/')[2] in CHECKED_USER:
+                print 'User Has benen CRAWED!'
                 continue
             else:
                 CHECKED_USER.append(follow['href'].split('/')[2])
                 CHECKING_USER.append(config.HOME + follow['href'])
-                print config.HOME + follow['href']
 
 def handUserContent(url,contentsList):
     userHome=url.split('/')[0]+'//'+url.split('/')[2]+'/'+url.split('/')[3]+'/'+url.split('/')[4]
     # 处理用户的评论信息
-    # time.sleep(config.SLEEP_TIME)
+    if config.SLEEP_SWITCH == True:
+        time.sleep(config.SLEEP_TIME)
     response=requests.get(url,headers=headers)
     soup=BeautifulSoup(response.text, "html.parser", from_encoding='gb2312')
 
@@ -121,8 +134,6 @@ def handUserContent(url,contentsList):
             # shopContentInfo=getShopInfo(shopUrl)
             shopContentInfo['content']=content.find('div',class_='mode-tc comm-entry').text.encode('utf-8')
             contentsList.append(shopContentInfo)
-    else :
-        print 'content None'
 
     # 翻页
     pageIndex=soup.find('div',class_='pages-num')
@@ -137,6 +148,7 @@ def handUserContent(url,contentsList):
     return contentsList
 
 def getShopInfo(shopUrl):
+    # "由于此函数调用之后，会产生大量的response，触发点评的反扒机制，需在配置代理IP之后调用，或者单独封装爬取点评的店面信息"
     urlSplit=shopUrl.split('/')
     shopHome=urlSplit[0] + '//' + urlSplit[1] + urlSplit[2] + '/' + urlSplit[3] + '/' + urlSplit[4]
     shopID=urlSplit[4]
@@ -145,6 +157,8 @@ def getShopInfo(shopUrl):
     else:
         # 处理店铺的简单信息
         shopInfo={}
+        if config.SLEEP_SWITCH == True:
+            time.sleep(config.SLEEP_TIME)
         response = requests.get(shopUrl, headers=headers)
         soup=BeautifulSoup(response.text, "html.parser", from_encoding='gb2312')
         # 店名
@@ -182,9 +196,6 @@ def getShopInfo(shopUrl):
         CHECKING_SHOP[shopID]=shopInfo
     return shopInfo
 
-# handleUserPage('https://www.dianping.com/member/135910734')
-# contents=[]
-# handUserContent('https://www.dianping.com/member/1094091/reviews',contents)
-# print contents
-# handleFollowsPage('https://www.dianping.com/member/819235579/follows')
-handleFollowsPage('https://www.dianping.com/member/21718585/follows')
+CHECKING_USER.append(config.ORIGIN_PAGE)
+for userUrl in CHECKING_USER:
+    handleUserPage(userUrl)
