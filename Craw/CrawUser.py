@@ -1,6 +1,13 @@
 # -*- coding: UTF-8 -*-
+# python    :2.7.5
+# @Time     :2017/8/30 10:25
+# @Author   :Link
+# @Contact  :wsqihoulin@gmail.com
+# @FileName :Link.py
+
 from bs4 import BeautifulSoup
 from Config import CrawConfig as config
+from Common import Link
 import re,requests,time,os,json,sys
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -18,11 +25,6 @@ headers = config.HEADERS
 # 代理
 proxies = config.PROXIES
 
-def getResponse(url=OriginPage,headers=headers):
-    #得到response
-    response = requests.get(url,headers=headers)
-    print response
-
 def handleUserPage(url):
     # 处理单个用户的信息
     userHome = url.split('/')[0] + '//' + url.split('/')[2] + '/' + url.split('/')[3] + '/' + url.split('/')[4]
@@ -34,7 +36,8 @@ def handleUserPage(url):
 
     if config.SLEEP_SWITCH == True:
         time.sleep(config.SLEEP_TIME)
-    response=requests.get(url,headers=headers)
+    # response=requests.get(url,headers=headers)
+    response=Link.getResonse(url,headers)
     soup = BeautifulSoup(response.text, "html.parser", from_encoding='utf-8')
     dataSoup=soup.find('div',class_='txt')
     # 抓取用户信息
@@ -98,9 +101,8 @@ def handleFollowsPage(url):
     # 处理用户关注信息
     if config.SLEEP_SWITCH == True:
         time.sleep(config.SLEEP_TIME)
-    response = requests.get(url, headers=headers)
+    response = Link.getResonse(url, headers)
     soup = BeautifulSoup(response.text, "html.parser", from_encoding='utf-8')
-    # print soup.prettify()
     followsData = soup.find('div', class_='modebox fllow-list')
     # 判断用户是否公开了自己的关注
     if followsData is not None:
@@ -108,7 +110,7 @@ def handleFollowsPage(url):
         for follow in followLink:
             # 用户是否爬取过
             if follow['href'].split('/')[2] in CHECKED_USER:
-                print 'User Has benen CRAWED!'
+                # print 'User Has benen CRAWED!'
                 continue
             else:
                 CHECKED_USER.append(follow['href'].split('/')[2])
@@ -119,7 +121,7 @@ def handUserContent(url,contentsList):
     # 处理用户的评论信息
     if config.SLEEP_SWITCH == True:
         time.sleep(config.SLEEP_TIME)
-    response=requests.get(url,headers=headers)
+    response = Link.getResonse(url, headers)
     soup=BeautifulSoup(response.text, "html.parser", from_encoding='gb2312')
 
     # print soup.prettify()
@@ -132,7 +134,11 @@ def handUserContent(url,contentsList):
             shopContentInfo = {}
             shopUrl=content.find('a',class_='J_rpttitle')['href']
             # shopContentInfo=getShopInfo(shopUrl)
-            shopContentInfo['content']=content.find('div',class_='mode-tc comm-entry').text.encode('utf-8')
+            try:
+                shopContentInfo['content']=content.find('div',class_='mode-tc comm-entry').text.encode('utf-8')
+            except TypeError:
+                print TabError.message
+                print shopUrl
             contentsList.append(shopContentInfo)
 
     # 翻页
@@ -148,7 +154,7 @@ def handUserContent(url,contentsList):
     return contentsList
 
 def getShopInfo(shopUrl):
-    # "由于此函数调用之后，会产生大量的response，触发点评的反扒机制，需在配置代理IP之后调用，或者单独封装爬取点评的店面信息"
+    # 由于此函数调用之后，会产生大量的response，触发点评的反扒机制，需在配置代理IP之后调用，或者单独封装爬取点评的店面信息
     urlSplit=shopUrl.split('/')
     shopHome=urlSplit[0] + '//' + urlSplit[1] + urlSplit[2] + '/' + urlSplit[3] + '/' + urlSplit[4]
     shopID=urlSplit[4]
@@ -159,7 +165,8 @@ def getShopInfo(shopUrl):
         shopInfo={}
         if config.SLEEP_SWITCH == True:
             time.sleep(config.SLEEP_TIME)
-        response = requests.get(shopUrl, headers=headers)
+        # response = requests.get(shopUrl, headers=headers)
+        response = Link.getResonse(shopUrl, headers)
         soup=BeautifulSoup(response.text, "html.parser", from_encoding='gb2312')
         # 店名
         shopName=soup.find('h1',class_='shop-name').text.split('\n')[1]

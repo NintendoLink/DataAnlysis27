@@ -1,3 +1,10 @@
+# -*- coding: UTF-8 -*-
+# python    :2.7.5
+# @Time     :2017/8/30 10:25
+# @Author   :Link
+# @Contact  :wsqihoulin@gmail.com
+# @FileName :Link.py
+
 HOME='http://www.dianping.com'
 ORIGIN_PAGE='https://www.dianping.com/member/133803355'
 TEST_FOLDER='../Data/TestPath'
@@ -15,3 +22,5 @@ HEADERS= {
 PROXIES={'http': "117.175.193.42:8123",
            "https": "http://10.10.1.10:1080"
          }
+SOUP_RESOLVE='html.parser'
+SOUP_ENCODE='gb2312'
